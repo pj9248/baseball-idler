@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b3b22">
+<title>Baseball Idler v0.5.1 Beta</title>
+<style>
+:root{--bg:#06170d;--panel:#0a2a18;--green:#145b34;--green2:#19703f;--gold:#ffd21c;--cream:#fff3a0;--mint:#c5f6d7;--red:#c91f25;--line:#56805d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+#app{max-width:820px;min-height:100vh;margin:auto;background:var(--green);padding:14px 14px 95px}
+h1{margin:8px 0 14px;text-align:center;color:var(--cream);font-size:clamp(30px,7vw,48px)}h2{color:var(--cream);margin:4px 0 12px}p{line-height:1.35}
+.card{background:var(--panel);border-radius:18px;padding:16px;margin:12px 0;border:1px solid #23583a}
+.scoreboard{border:4px solid #d9ffe8;background:#03160c;border-radius:22px;padding:16px}
+.seasonline{color:var(--mint);font-size:15px;letter-spacing:.04em;margin-bottom:10px}
+.score{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;text-align:center}
+.team{background:#092c1a;border-radius:14px;padding:12px}.team small{color:var(--mint)}.scoreNum{font-size:46px;font-weight:900;color:var(--cream)}
+.inning{font-size:26px;font-weight:900;color:var(--cream)}.sub{font-size:13px;color:var(--mint)}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}.metric{background:#0b331f;border-radius:12px;padding:10px;text-align:center}.metric b{display:block;color:var(--cream);font-size:21px}
+.diamond{width:190px;height:190px;position:relative;transform:rotate(45deg);margin:18px auto}.base{position:absolute;width:48px;height:48px;border:4px solid #fff1b3;background:#3d541b;border-radius:7px}.base.on{background:var(--gold)}.b1{right:0;top:71px}.b2{left:71px;top:0}.b3{left:0;top:71px}.homebase{left:71px;bottom:0}
+button{font:inherit}.btn{border:0;border-radius:14px;background:var(--gold);color:#11482c;font-weight:900;padding:14px 16px;min-height:52px}.btn:disabled{background:#7b8392;color:#d8dce4}.btn.big{width:100%;font-size:22px}.danger{background:var(--red);color:#fff}.message{text-align:center;color:#ffe888;font-weight:800;min-height:24px}
+.nav{position:fixed;z-index:20;bottom:0;left:50%;transform:translateX(-50%);width:min(820px,100%);display:grid;grid-template-columns:repeat(4,1fr);background:#062516;border-top:1px solid #3e6b4c;padding:7px 7px calc(7px + env(safe-area-inset-bottom))}
+.nav button{border:0;background:transparent;color:#bde8cc;font-weight:800;padding:12px 4px}.nav button.active{background:var(--gold);color:#164c2f;border-radius:10px}
+.view{display:none}.view.active{display:block}.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.stat{background:#0b331f;border-radius:12px;padding:10px;text-align:center}.stat b{display:block;color:var(--cream);font-size:20px}
+.table{width:100%;border-collapse:collapse}.table th,.table td{padding:9px 5px;border-bottom:1px solid #27563a;text-align:right}.table th:first-child,.table td:first-child{text-align:left}
+.upgrade{background:var(--green2);border-radius:14px;padding:13px;margin:10px 0}.upgradeTop{display:flex;justify-content:space-between;gap:10px}.upgrade .desc{color:#d5f5df;font-size:14px}.upgrade button{width:100%;margin-top:9px}
+.skill{margin:12px 0}.bar{height:10px;border-radius:10px;background:#395326;overflow:hidden}.bar i{height:100%;display:block;background:var(--gold)}
+.startOverlay{position:fixed;z-index:50;inset:0;background:#06170df5;overflow:auto;padding:calc(22px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom));display:none}.startOverlay.show{display:block}.startBox{max-width:700px;margin:auto;background:var(--green);border:2px solid var(--line);border-radius:24px;padding:20px}.mode{background:var(--panel);border-radius:16px;padding:15px;margin:12px 0}.mode b{color:var(--cream);font-size:22px}.mode button{width:100%;margin-top:8px}
+.pill{display:inline-block;padding:5px 9px;border-radius:99px;background:#0b331f;color:var(--mint);font-size:12px}.settings{display:flex;gap:8px;flex-wrap:wrap}.tiny{font-size:12px;color:#ccebd7}
+@media(min-width:650px){.grid4{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<div id="startOverlay" class="startOverlay"><div class="startBox">
+<h1>⚾ Baseball Idler</h1><h2>Choose Your Season</h2>
+<p>Pick the schedule you want to play. Season completion is based on games played—not currency.</p>
+<div class="mode"><b>Full Season — 162 Games</b><p>The complete baseball marathon. Long-form statistics, streaks and progression.</p><button class="btn" onclick="startSeason('full')">PLAY 162</button></div>
+<div class="mode"><b>Half Season — 81 Games</b><p>A substantial season at half the full schedule.</p><button class="btn" onclick="startSeason('half')">PLAY 81</button></div>
+<div class="mode"><b>Quick Season — 35 Games</b><p>A faster pennant race while still giving standings and stats room to develop.</p><button class="btn" onclick="startSeason('quick')">PLAY 35</button></div>
+<p class="tiny">Season records remain associated with the format in which they were earned.</p>
+</div></div>
+
+<div id="app"><h1>⚾ Baseball Idler <span class="pill">v0.5.1 BETA</span></h1>
+
+<section id="play" class="view active">
+<div class="scoreboard">
+<div id="seasonLine" class="seasonline"></div>
+<div class="score"><div class="team"><small>VISITORS</small><div id="awayScore" class="scoreNum">0</div></div><div><div id="inning" class="inning">BOT 1</div><div id="outsText" class="sub">0 OUTS</div></div><div class="team"><small>HOME</small><div id="homeScore" class="scoreNum">0</div></div></div>
+<div class="metrics"><div class="metric">Training Points<b id="tp">0</b></div><div class="metric">TP / sec<b id="tps">0</b></div><div class="metric">Season Record<b id="record">0-0</b></div><div class="metric">Games Played<b id="gamesPlayed">0</b></div><div class="metric">Your PA This Game<b id="gamePA">0</b></div><div class="metric">Batting Order<b>#3</b></div></div>
+</div>
+<div class="card"><div class="diamond"><div id="b1" class="base b1"></div><div id="b2" class="base b2"></div><div id="b3" class="base b3"></div><div class="base homebase"></div></div><button id="atBat" class="btn big">TAKE AN AT-BAT!</button><p id="message" class="message">Step into the box.</p></div>
+</section>
+
+<section id="player" class="view">
+<div class="card"><h2>Season Batting</h2><table class="table">
+<tr><th>PA</th><td id="pa"></td><th>AB</th><td id="ab"></td></tr><tr><th>H</th><td id="hits"></td><th>HR</th><td id="hr"></td></tr>
+<tr><th>2B</th><td id="doubles"></td><th>3B</th><td id="triples"></td></tr><tr><th>RBI</th><td id="rbi"></td><th>R</th><td id="runs"></td></tr>
+<tr><th>AVG</th><td id="avg"></td><th>SLG</th><td id="slg"></td></tr></table></div>
+<div class="card"><h2>Career</h2><div class="grid4"><div class="stat">Games<b id="careerGames"></b></div><div class="stat">Hits<b id="careerHits"></b></div><div class="stat">Home Runs<b id="careerHR"></b></div><div class="stat">Career TP<b id="careerTP"></b></div></div></div>
+</section>
+
+<section id="upgrades" class="view"><div class="card"><h2>Player Development</h2><p>These upgrades change what happens on the field—not just how quickly a number grows.</p>
+<div class="skill">Contact <span id="contactLv"></span><div class="bar"><i id="contactBar"></i></div></div>
+<div class="skill">Power <span id="powerLv"></span><div class="bar"><i id="powerBar"></i></div></div>
+<div class="skill">Discipline <span id="disciplineLv"></span><div class="bar"><i id="disciplineBar"></i></div></div>
+<div class="skill">Training Facility <span id="facilityLv"></span><div class="bar"><i id="facilityBar"></i></div></div>
+<div id="shop"></div></div></section>
+
+<section id="season" class="view">
+<div class="card"><h2>Season Progress</h2><div id="seasonDetails"></div></div>
+<div class="card"><h2>Save & Settings</h2><div class="settings"><button class="btn" onclick="saveGame()">Save</button><button class="btn" onclick="loadGame(true)">Load</button><button class="btn danger" onclick="resetSave()">Reset Save</button></div><p class="tiny">Autosave runs periodically and after completed games.</p></div>
+</section>
+</div>
+
+<nav class="nav"><button class="active" data-tab="play">PLAY</button><button data-tab="player">PLAYER</button><button data-tab="upgrades">UPGRADES</button><button data-tab="season">SEASON</button></nav>
+
+<script>
+
+const SAVE_KEY='baseballIdler_v051_beta';
+const MODES={full:{name:'Full Season',games:162},half:{name:'Half Season',games:81},quick:{name:'Quick Season',games:35}};
+const PLAYER_SLOT=2; // #3 hitter, zero-based lineup index
+const emptyStats=()=>({PA:0,AB:0,H:0,d2:0,d3:0,HR:0,RBI:0,R:0,TB:0});
+let S={
+ mode:null,season:1,schedule:0,game:1,w:0,l:0,streak:0,best:0,
+ inning:1,outs:0,bases:[null,null,null],home:0,away:0,gameOver:false,
+ lineupIndex:0,gamePA:0,tp:0,careerTP:0,
+ stats:emptyStats(),career:emptyStats(),careerGames:0,
+ skills:{contact:0,power:0,discipline:0,facility:0},last:Date.now()
+};
+const $=id=>document.getElementById(id);
+const fmt=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1000?(n/1000).toFixed(1)+'K':Math.floor(n).toString();
+
+function showTab(id){
+ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));
+ document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+
+function userProbabilities(){
+ let c=S.skills.contact,p=S.skills.power,d=S.skills.discipline;
+ return {
+  hr:Math.min(.055,.022+p*.0022),
+  triple:.007,
+  double:Math.min(.10,.052+c*.0013),
+  single:Math.min(.25,.155+c*.0025),
+  walk:Math.min(.14,.075+d*.003)
+ };
+}
+function userOutcome(){
+ let q=userProbabilities(),r=Math.random();
+ for(const [k,v] of [['HR',q.hr],['3B',q.triple],['2B',q.double],['1B',q.single],['BB',q.walk]]){
+  if(r<v)return k;r-=v;
+ }
+ return Math.random()<.31?'K':'OUT';
+}
+function teammateOutcome(){
+ let r=Math.random();
+ for(const [k,v] of [['HR',.030],['3B',.005],['2B',.045],['1B',.160],['BB',.080]]){
+  if(r<v)return k;r-=v;
+ }
+ return Math.random()<.28?'K':'OUT';
+}
+
+function scoreRunner(runner){
+ S.home++;
+ if(runner==='P'){S.stats.R++;S.career.R++;}
+}
+function advanceHome(kind,batter){
+ const b=S.bases.slice();
+ let scored=0;
+ const cross=(runner)=>{if(runner){scoreRunner(runner);scored++;}};
+ if(kind==='HR'){
+  cross(b[0]);cross(b[1]);cross(b[2]);cross(batter);
+  S.bases=[null,null,null];
+ }else if(kind==='3B'){
+  cross(b[0]);cross(b[1]);cross(b[2]);
+  S.bases=[null,null,batter];
+ }else if(kind==='2B'){
+  cross(b[1]);cross(b[2]);
+  S.bases=[null,batter,b[0]];
+ }else if(kind==='1B'){
+  cross(b[2]);
+  S.bases=[batter,b[0],b[1]];
+ }else if(kind==='BB'){
+  let n=[...b];
+  if(b[0]){
+   if(b[1]){
+    if(b[2]) cross(b[2]);
+    n[2]=b[1];
+   }
+   n[1]=b[0];
+  }
+  n[0]=batter;
+  S.bases=n;
+ }
+ return scored;
+}
+
+function advanceAway(bases,kind){
+ const b=bases.slice(); let scored=0;
+ const cross=(runner)=>{if(runner){scored++;}};
+ if(kind==='HR'){cross(b[0]);cross(b[1]);cross(b[2]);scored++;return {bases:[null,null,null],runs:scored};}
+ if(kind==='3B'){cross(b[0]);cross(b[1]);cross(b[2]);return {bases:[null,null,'A'],runs:scored};}
+ if(kind==='2B'){cross(b[1]);cross(b[2]);return {bases:[null,'A',b[0]],runs:scored};}
+ if(kind==='1B'){cross(b[2]);return {bases:['A',b[0],b[1]],runs:scored};}
+ if(kind==='BB'){
+  let n=[...b];
+  if(b[0]){
+   if(b[1]){
+    if(b[2]){cross(b[2]);}
+    n[2]=b[1];
+   }
+   n[1]=b[0];
+  }
+  n[0]='A'; return {bases:n,runs:scored};
+ }
+ return {bases:b,runs:0};
+}
+
+function simulateAwayHalf(){
+ let outs=0,bases=[null,null,null],runs=0;
+ while(outs<3){
+  let o=teammateOutcome();
+  if(o==='OUT'||o==='K'){outs++;continue;}
+  let a=advanceAway(bases,o);bases=a.bases;runs+=a.runs;
+ }
+ S.away+=runs;
+ return runs;
+}
+
+function checkWalkoff(){
+ if(S.inning>=9 && S.home>S.away){
+  finishGame(true,'WALK-OFF!');
+  return true;
+ }
+ return false;
+}
+
+function endBottomInning(){
+ S.outs=0;S.bases=[null,null,null];
+ if(S.inning>=9 && S.home!==S.away){
+  finishGame(S.home>S.away);
+  return;
+ }
+ S.inning++;
+ beginBottomInning();
+}
+
+function beginBottomInning(){
+ if(S.gameOver)return;
+ simulateAwayHalf();
+ if(S.inning>=9 && S.home>S.away){
+  finishGame(true,'HOME LEADS AFTER THE TOP HALF.');
+  return;
+ }
+ S.outs=0;S.bases=[null,null,null];
+ simulateUntilPlayerTurn();
+}
+
+function simulateTeammatePA(){
+ const o=teammateOutcome();
+ S.lineupIndex=(S.lineupIndex+1)%9;
+ if(o==='OUT'||o==='K'){
+  S.outs++;
+  if(S.outs>=3){endBottomInning();return;}
+ }else{
+  advanceHome(o,'T');
+  if(checkWalkoff())return;
+ }
+}
+
+function simulateUntilPlayerTurn(){
+ let safety=0;
+ while(!S.gameOver && S.lineupIndex!==PLAYER_SLOT && safety<500){
+  simulateTeammatePA();
+  safety++;
+ }
+ if(!S.gameOver){
+  $('message').textContent=`Your turn — batting #3 in the bottom of the ${S.inning}${ordinalSuffix(S.inning)}.`;
+ }
+}
+
+function ordinalSuffix(n){
+ const j=n%10,k=n%100;
+ if(j===1&&k!==11)return 'st';
+ if(j===2&&k!==12)return 'nd';
+ if(j===3&&k!==13)return 'rd';
+ return 'th';
+}
+
+function initializeGame(){
+ S.inning=1;S.outs=0;S.bases=[null,null,null];S.home=0;S.away=0;S.gameOver=false;
+ S.lineupIndex=0;S.gamePA=0;
+ beginBottomInning();
+}
+
+function startSeason(mode){
+ S.mode=mode;S.schedule=MODES[mode].games;S.game=1;S.w=0;S.l=0;S.streak=0;S.best=0;
+ S.stats=emptyStats();
+ $('startOverlay').classList.remove('show');
+ initializeGame();
+ if(!S.gameOver)$('message').textContent=`${MODES[mode].name} begins — you're batting #3.`;
+ render();saveGame();
+}
+
+function plateAppearance(){
+ if(!S.mode){$('startOverlay').classList.add('show');return;}
+ if(S.gameOver){nextGame();return;}
+ if(S.lineupIndex!==PLAYER_SLOT){simulateUntilPlayerTurn();render();return;}
+
+ const o=userOutcome(),st=S.stats,ca=S.career;
+ st.PA++;ca.PA++;S.gamePA++;
+ const gain=5+S.skills.facility*.75;
+ S.tp+=gain;S.careerTP+=gain;
+ if(o!=='BB'){st.AB++;ca.AB++;}
+ let text='';
+
+ if(['1B','2B','3B','HR'].includes(o)){
+  st.H++;ca.H++;
+  const tb={'1B':1,'2B':2,'3B':3,'HR':4}[o];
+  st.TB+=tb;ca.TB+=tb;
+  if(o==='2B'){st.d2++;ca.d2++;}
+  if(o==='3B'){st.d3++;ca.d3++;}
+  if(o==='HR'){st.HR++;ca.HR++;}
+  const scored=advanceHome(o,'P');
+  st.RBI+=scored;ca.RBI+=scored;
+  text={'1B':'SINGLE up the middle!','2B':'DOUBLE into the gap!','3B':'TRIPLE!','HR':'HOME RUN!'}[o];
+ }else if(o==='BB'){
+  const scored=advanceHome('BB','P');
+  if(scored){st.RBI+=scored;ca.RBI+=scored;}
+  text='BALL FOUR — take your base.';
+ }else{
+  S.outs++; text=o==='K'?'STRIKEOUT.':'Ball in play — OUT.';
+ }
+
+ S.lineupIndex=(S.lineupIndex+1)%9;
+ if(checkWalkoff())return;
+ if(S.outs>=3){
+  endBottomInning();
+  if(!S.gameOver){$('message').textContent=text+' The game simulates ahead to your next turn.';}
+ }else{
+  simulateUntilPlayerTurn();
+  if(!S.gameOver)$('message').textContent=text+` Next PA: BOT ${S.inning}.`;
+ }
+ render();
+}
+
+function finishGame(win,prefix=''){
+ if(S.gameOver)return;
+ S.gameOver=true;S.careerGames++;
+ if(win){S.w++;S.streak++;S.best=Math.max(S.best,S.streak);S.tp+=12;S.careerTP+=12;}
+ else{S.l++;S.streak=0;}
+ $('message').textContent=(prefix?prefix+' ':'')+(win?'HOME WINS!':'HOME LOSES.')+` Final ${S.away}–${S.home} • Your PA: ${S.gamePA}`;
+ render();saveGame();
+}
+
+function nextGame(){
+ if(S.game>=S.schedule){
+  $('message').textContent='REGULAR SEASON COMPLETE — postseason module is the next milestone.';
+  showTab('season');return;
+ }
+ S.game++;
+ initializeGame();
+ if(!S.gameOver)$('message').textContent=`Game ${S.game} — you're due up #3.`;
+ render();saveGame();
+}
+
+const UPGRADES=[
+ {key:'contact',name:'Contact Training',base:55,desc:'Raises the chance of singles and doubles.'},
+ {key:'power',name:'Power Training',base:85,desc:'Raises home-run probability, within a baseball-like cap.'},
+ {key:'discipline',name:'Plate Discipline',base:70,desc:'Raises walk probability.'},
+ {key:'facility',name:'Training Facility',base:110,desc:'Raises TP earned per plate appearance and adds a small passive TP stream.'}
+];
+function upCost(u){return Math.round(u.base*Math.pow(1.62,S.skills[u.key]));}
+function buyUpgrade(key){
+ let u=UPGRADES.find(x=>x.key===key),c=upCost(u);
+ if(S.tp<c)return;
+ S.tp-=c;S.skills[key]++;render();saveGame();
+}
+function passiveRate(){return S.skills.facility*.08;}
+
+function render(){
+ $('seasonLine').textContent=S.mode?`SEASON ${S.season} • ${MODES[S.mode].name.toUpperCase()} • GAME ${S.game} OF ${S.schedule}`:'NO SEASON SELECTED';
+ $('awayScore').textContent=S.away;$('homeScore').textContent=S.home;
+ $('inning').textContent=S.gameOver?`FINAL / ${S.inning}`:'BOT '+S.inning;
+ $('outsText').textContent=S.gameOver?'GAME COMPLETE':`${S.outs} OUT${S.outs===1?'':'S'}`;
+ ['b1','b2','b3'].forEach((id,i)=>$(id).classList.toggle('on',!!S.bases[i]));
+ $('tp').textContent=fmt(S.tp);$('tps').textContent=passiveRate().toFixed(2);
+ $('record').textContent=`${S.w}-${S.l}`;$('gamesPlayed').textContent=S.w+S.l;
+ $('gamePA').textContent=S.gamePA;
+ $('atBat').textContent=S.gameOver?(S.game>=S.schedule?'REGULAR SEASON COMPLETE':'START NEXT GAME'):'TAKE YOUR AT-BAT!';
+ let st=S.stats;
+ [
+  ['pa',st.PA],['ab',st.AB],['hits',st.H],['hr',st.HR],['doubles',st.d2],['triples',st.d3],
+  ['rbi',st.RBI],['runs',st.R],
+  ['avg',st.AB?(st.H/st.AB).toFixed(3).replace(/^0/,''):'.000'],
+  ['slg',st.AB?(st.TB/st.AB).toFixed(3).replace(/^0/,''):'.000'],
+  ['careerGames',S.careerGames],['careerHits',S.career.H],['careerHR',S.career.HR],['careerTP',fmt(S.careerTP)]
+ ].forEach(([id,v])=>$(id).textContent=v);
+
+ for(const k of ['contact','power','discipline','facility']){
+  $(k+'Lv').textContent=`Lv ${S.skills[k]}`;
+  $(k+'Bar').style.width=Math.min(100,S.skills[k]*5)+'%';
+ }
+ $('shop').innerHTML=UPGRADES.map(u=>`<div class="upgrade"><div class="upgradeTop"><b>${u.name}</b><span>Lv ${S.skills[u.key]}</span></div><div class="desc">${u.desc}</div><button class="btn" ${S.tp<upCost(u)?'disabled':''} onclick="buyUpgrade('${u.key}')">${fmt(upCost(u))} TP</button></div>`).join('');
+ $('seasonDetails').innerHTML=S.mode?`<p><b>${MODES[S.mode].name}</b> — ${S.schedule} games</p><p>Game ${S.game} of ${S.schedule} • Record ${S.w}-${S.l}</p><div class="bar"><i style="width:${Math.min(100,(S.w+S.l)/S.schedule*100)}%"></i></div><p>Best streak: ${S.best}</p><p>Your lineup spot: <b>#3</b> • This game PA: <b>${S.gamePA}</b></p><p class="tiny">The other eight hitters and the visitors are simulated between your plate appearances. A new season cannot begin until this schedule is completed.</p>`:'<p>No active season.</p>';
+}
+
+function saveGame(){S.last=Date.now();localStorage.setItem(SAVE_KEY,JSON.stringify(S));}
+function loadGame(showMsg=false){
+ try{
+  let raw=localStorage.getItem(SAVE_KEY);
+  if(!raw){if(showMsg)$('message').textContent='No v0.5.1 beta save found.';return;}
+  let x=JSON.parse(raw);
+  S={...S,...x,stats:{...emptyStats(),...(x.stats||{})},career:{...emptyStats(),...(x.career||{})},skills:{...S.skills,...(x.skills||{})}};
+  if(S.mode)$('startOverlay').classList.remove('show');
+  if(showMsg)$('message').textContent='Save loaded.';
+  render();
+ }catch(e){console.error(e);}
+}
+function resetSave(){if(confirm('Erase the v0.5.1 Beta save?')){localStorage.removeItem(SAVE_KEY);location.reload();}}
+
+$('atBat').onclick=plateAppearance;
+setInterval(()=>{let r=passiveRate();if(r){let x=r/10;S.tp+=x;S.careerTP+=x;render();}},100);
+setInterval(saveGame,20000);
+loadGame();
+if(!S.mode)$('startOverlay').classList.add('show');
+render();
+
+</script></body></html>
