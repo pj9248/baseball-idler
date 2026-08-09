@@ -1,0 +1,16 @@
+{
+  "name": "Baseball Idler",
+  "short_name": "Baseball Idler",
+  "description": "A baseball idle game with at-bats, innings, upgrades, seasons and offline progress.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#082b18",
+  "theme_color": "#0a3d1f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {"src":"icon-180.png","sizes":"180x180","type":"image/png"},
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png"}
+  ]
+}

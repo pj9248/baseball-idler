@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a3d1f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Baseball Idler">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Baseball Idler v0.4.1 Mobile</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        font-family: Arial, sans-serif;
+        background: radial-gradient(circle at top, #0f5b31 0%, #082b18 58%, #04150c 100%);
+        color: white;
+        text-align: center;
+        margin: 0;
+        padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+        min-height: 100vh;
+        min-height: 100dvh;
+        overscroll-behavior: none;
+    }
+    #game {
+        max-width: 820px;
+        margin: 0 auto;
+        background: rgba(20, 83, 45, 0.96);
+        padding: 20px;
+        border-radius: 18px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.55);
+        border: 2px solid rgba(254,240,138,0.25);
+    }
+    h1 { margin: 0 0 14px 0; color: #fef08a; }
+    h2 { margin-top: 24px; }
+    .scoreboard {
+        background: #071b10;
+        border: 3px solid #d1fae5;
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: inset 0 0 18px rgba(0,0,0,0.75);
+    }
+    .score-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        color: #bbf7d0;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .game-score {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 12px;
+        align-items: center;
+        margin: 14px 0;
+    }
+    .team-box {
+        background: #0b2e1b;
+        border-radius: 10px;
+        padding: 10px;
+    }
+    .team-box .team-name { font-size: 13px; color: #bbf7d0; text-transform: uppercase; }
+    .team-box .team-runs { font-size: 38px; font-weight: bold; color: #fef08a; }
+    .inning-box { color: #d1fae5; font-size: 14px; min-width: 110px; }
+    .inning-box strong { display: block; color: #fef08a; font-size: 20px; margin-bottom: 4px; }
+    #runs { font-size: 42px; font-weight: bold; margin: 8px 0 2px 0; color: #fef08a; }
+    #rps { font-size: 18px; color: #86efac; margin-bottom: 8px; }
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .stat-card {
+        background: #0b2e1b;
+        border-radius: 8px;
+        padding: 9px;
+        font-size: 13px;
+        color: #d1fae5;
+    }
+    .stat-card strong { display: block; color: #fef08a; font-size: 16px; }
+    .field-panel {
+        background: rgba(7, 27, 16, 0.62);
+        border-radius: 14px;
+        padding: 14px;
+        margin: 14px 0;
+    }
+    .diamond {
+        width: 170px;
+        height: 170px;
+        margin: 8px auto 12px;
+        position: relative;
+        transform: rotate(45deg);
+    }
+    .base {
+        position: absolute;
+        width: 42px;
+        height: 42px;
+        border: 3px solid #fef3c7;
+        background: #365314;
+        border-radius: 5px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    }
+    .base.occupied { background: #facc15; }
+    .base.home { left: 64px; bottom: 0; }
+    .base.first { right: 0; top: 64px; }
+    .base.second { left: 64px; top: 0; }
+    .base.third { left: 0; top: 64px; }
+    .base-label {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        transform: rotate(-45deg);
+        font-weight: bold;
+        font-size: 12px;
+        color: #052e16;
+    }
+    .outs { font-size: 18px; color: #fecaca; font-weight: bold; }
+    .count-dot {
+        display: inline-block;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #374151;
+        margin: 0 3px;
+        border: 1px solid rgba(255,255,255,.2);
+    }
+    .count-dot.on { background: #ef4444; }
+    .last-play {
+        min-height: 28px;
+        color: #fde68a;
+        font-weight: bold;
+        margin: 8px 0 0;
+    }
+    button {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+        background: #facc15;
+        color: #14532d;
+        border: none;
+        padding: 14px 28px;
+        font-size: 18px;
+        border-radius: 10px;
+        cursor: pointer;
+        margin: 8px;
+        font-weight: bold;
+        transition: transform 0.08s ease, background 0.2s ease;
+    }
+    button:hover { background: #fde047; }
+    button:active { transform: scale(0.98); }
+    button:disabled { background: #6b7280; color: #d1d5db; cursor: not-allowed; }
+    #hitBtn { width: min(100%, 460px); font-size: 21px; }
+    .upgrade {
+        background: #166534;
+        margin: 8px 0;
+        padding: 12px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+    }
+    .upgrade button { padding: 8px 14px; font-size: 15px; margin: 0; min-width: 110px; }
+    #message { min-height: 28px; color: #86efac; font-weight: bold; }
+    .info { font-size: 14px; color: #a7f3d0; margin-top: 8px; }
+    .season-panel, .save-panel, .record-panel {
+        background: rgba(7, 27, 16, 0.45);
+        padding: 14px;
+        border-radius: 12px;
+        margin-top: 14px;
+    }
+    .record-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .danger { background: #b91c1c; color: white; }
+    .danger:hover { background: #dc2626; }
+    .small { font-size: 12px; color: #bbf7d0; }
+    @media (max-width: 650px) {
+        body { padding: 10px; }
+        #game { padding: 14px; }
+        .stats-row, .record-grid { grid-template-columns: repeat(2, 1fr); }
+        .upgrade { align-items: stretch; flex-direction: column; }
+        .upgrade button { width: 100%; }
+        .game-score { grid-template-columns: 1fr 82px 1fr; gap: 6px; }
+        .team-box .team-runs { font-size: 30px; }
+    }
+    .install-note {
+        margin: 0 0 14px 0;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(7,27,16,.82);
+        color: #d1fae5;
+        font-size: 13px;
+        line-height: 1.35;
+        border: 1px solid rgba(209,250,229,.25);
+    }
+    .install-note strong { color: #fef08a; }
+    @media (display-mode: standalone) { .install-note { display:none; } }
+    @media (max-width: 600px) {
+        body { font-size: 15px; }
+        #game { padding: 14px; border-radius: 14px; }
+        #hitBtn { min-height: 58px; font-size: 20px; }
+        button { min-height: 44px; }
+    }
+</style>
+</head>
+<body>
+<div id="game">
+    <h1>⚾ Baseball Idler</h1>
+    <div class="install-note"><strong>iPhone:</strong> Open this site in Safari, tap Share, then <strong>Add to Home Screen</strong>. After that it launches like an app and can work offline.</div>
+
+    <div class="scoreboard">
+        <div class="score-top">
+            <span id="seasonLabel">Season 1</span>
+            <span>Career Currency: <strong id="careerRuns">0</strong></span>
+        </div>
+
+        <div class="game-score">
+            <div class="team-box">
+                <div class="team-name">Visitors</div>
+                <div class="team-runs" id="awayScore">0</div>
+            </div>
+            <div class="inning-box">
+                <strong id="inningLabel">BOT 1</strong>
+                <span id="gameStatus">Game 1</span>
+            </div>
+            <div class="team-box">
+                <div class="team-name">Home</div>
+                <div class="team-runs" id="homeScore">0</div>
+            </div>
+        </div>
+
+        <div id="runs">0 Run Currency</div>
+        <div id="rps">0 Run Currency/sec</div>
+        <div class="stats-row">
+            <div class="stat-card">Season Bonus<strong id="seasonMult">1.0x</strong></div>
+            <div class="stat-card">Total Income<strong id="totalMult">1.0x</strong></div>
+            <div class="stat-card">At-Bat Reward<strong id="clickPowerDisplay">1</strong></div>
+            <div class="stat-card">Games Played<strong id="gamesPlayedDisplay">0</strong></div>
+        </div>
+    </div>
+
+    <div class="field-panel">
+        <div class="outs">OUTS: <span id="outsDots"></span></div>
+        <div class="diamond" aria-label="Base runners">
+            <div class="base home"><span class="base-label">HOME</span></div>
+            <div class="base first" id="base1"><span class="base-label">1B</span></div>
+            <div class="base second" id="base2"><span class="base-label">2B</span></div>
+            <div class="base third" id="base3"><span class="base-label">3B</span></div>
+        </div>
+        <button id="hitBtn">TAKE AN AT-BAT!</button>
+        <div class="last-play" id="lastPlay">Step into the box.</div>
+        <div id="message"></div>
+    </div>
+
+    <div class="record-panel">
+        <div class="record-grid">
+            <div class="stat-card">Wins<strong id="winsDisplay">0</strong></div>
+            <div class="stat-card">Losses<strong id="lossesDisplay">0</strong></div>
+            <div class="stat-card">Home Runs<strong id="homersDisplay">0</strong></div>
+            <div class="stat-card">Best Streak<strong id="bestStreakDisplay">0</strong></div>
+        </div>
+    </div>
+
+    <h2>Upgrades</h2>
+    <div id="upgrades"></div>
+    <div class="info" id="unlockInfo"></div>
+
+    <div class="season-panel">
+        <h2>Season Reset</h2>
+        <button id="prestigeBtn" disabled>Start New Season</button>
+        <p>Seasons Completed: <span id="seasons">0</span></p>
+        <p class="small">A new season resets run currency and purchased upgrades, but keeps career currency, your record, and a stronger permanent season bonus.</p>
+    </div>
+
+    <div class="save-panel">
+        <button onclick="saveGame()">Save</button>
+        <button onclick="loadGame()">Load</button>
+        <button class="danger" onclick="resetGame()">Reset Save</button>
+    </div>
+</div>
+
+<script>
+    const SAVE_KEY = "baseballIdlerSave";
+    const VERSION = "0.4.0";
+    const PRESTIGE_COST = 35000;
+
+    let runs = 0;
+    let totalRuns = 0;
+    let clickPower = 1;
+    let autoPower = 0;
+    let prestigeMult = 1.0;
+    let totalPrestiges = 0;
+    let lastSaveTime = Date.now();
+    let lastRenderedAffordableState = "";
+
+    // Baseball game state. The player always bats as the home club.
+    let inning = 1;
+    let outs = 0;
+    let bases = [false, false, false];
+    let homeScore = 0;
+    let awayScore = 0;
+    let gameNumber = 1;
+    let gamesPlayed = 0;
+    let wins = 0;
+    let losses = 0;
+    let homeRuns = 0;
+    let winStreak = 0;
+    let bestStreak = 0;
+    let gameOver = false;
+
+    const upgrades = [
+        { id: "bat1", name: "Wooden Bat", cost: 15, power: 1, type: "click", owned: 0, desc: "+1 currency per plate appearance", unlockAt: 0 },
+        { id: "auto1", name: "Practice Tee", cost: 20, auto: 0.8, type: "auto", owned: 0, desc: "+0.8 currency/sec", unlockAt: 0 },
+        { id: "bat2", name: "Aluminum Bat", cost: 80, power: 3, type: "click", owned: 0, desc: "+3 currency per plate appearance", unlockAt: 400 },
+        { id: "auto2", name: "Batting Cage", cost: 120, auto: 3, type: "auto", owned: 0, desc: "+3 currency/sec", unlockAt: 400 },
+        { id: "bat3", name: "Pro Bat", cost: 500, power: 10, type: "click", owned: 0, desc: "+10 currency per plate appearance", unlockAt: 2500 },
+        { id: "auto3", name: "Pitching Machine", cost: 700, auto: 12, type: "auto", owned: 0, desc: "+12 currency/sec", unlockAt: 2500 },
+        { id: "bat4", name: "Carbon Bat", cost: 3000, power: 35, type: "click", owned: 0, desc: "+35 currency per plate appearance", unlockAt: 12000 },
+        { id: "auto4", name: "Robot Assistant", cost: 4500, auto: 50, type: "auto", owned: 0, desc: "+50 currency/sec", unlockAt: 12000 },
+        { id: "auto5", name: "Full Team Practice", cost: 25000, auto: 200, type: "auto", owned: 0, desc: "+200 currency/sec", unlockAt: 50000 },
+        { id: "fans1", name: "More Fans", cost: 40000, mult: 0.20, type: "mult", owned: 0, desc: "+20% all currency income", unlockAt: 50000 },
+        { id: "auto6", name: "AI Coach", cost: 150000, auto: 800, type: "auto", owned: 0, desc: "+800 currency/sec", unlockAt: 200000 },
+        { id: "fans2", name: "Season Tickets", cost: 220000, mult: 0.35, type: "mult", owned: 0, desc: "+35% all currency income", unlockAt: 200000 },
+        { id: "stadium", name: "Mega Stadium", cost: 1200000, mult: 0.60, type: "mult", owned: 0, desc: "+60% all currency income", unlockAt: 800000 }
+    ];
+
+    const runsDisplay = document.getElementById("runs");
+    const rpsDisplay = document.getElementById("rps");
+    const hitBtn = document.getElementById("hitBtn");
+    const upgradesDiv = document.getElementById("upgrades");
+    const message = document.getElementById("message");
+    const prestigeBtn = document.getElementById("prestigeBtn");
+    const seasonMultDisplay = document.getElementById("seasonMult");
+    const totalMultDisplay = document.getElementById("totalMult");
+    const seasonsDisplay = document.getElementById("seasons");
+    const unlockInfo = document.getElementById("unlockInfo");
+    const careerRunsDisplay = document.getElementById("careerRuns");
+    const clickPowerDisplay = document.getElementById("clickPowerDisplay");
+    const seasonLabel = document.getElementById("seasonLabel");
+    const homeScoreDisplay = document.getElementById("homeScore");
+    const awayScoreDisplay = document.getElementById("awayScore");
+    const inningLabel = document.getElementById("inningLabel");
+    const gameStatus = document.getElementById("gameStatus");
+    const lastPlay = document.getElementById("lastPlay");
+    const base1 = document.getElementById("base1");
+    const base2 = document.getElementById("base2");
+    const base3 = document.getElementById("base3");
+    const outsDots = document.getElementById("outsDots");
+    const gamesPlayedDisplay = document.getElementById("gamesPlayedDisplay");
+    const winsDisplay = document.getElementById("winsDisplay");
+    const lossesDisplay = document.getElementById("lossesDisplay");
+    const homersDisplay = document.getElementById("homersDisplay");
+    const bestStreakDisplay = document.getElementById("bestStreakDisplay");
+
+    function format(num) {
+        if (!Number.isFinite(num)) return "0";
+        if (num >= 1e12) return (num / 1e12).toFixed(2) + "T";
+        if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
+        if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
+        if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
+        return Math.floor(num).toLocaleString();
+    }
+
+    function getTotalMult() {
+        let mult = prestigeMult;
+        upgrades.forEach(upg => {
+            if (upg.mult) mult *= (1 + upg.mult * upg.owned);
+        });
+        return mult;
+    }
+
+    function getUpgradeCost(upg) {
+        return Math.floor(upg.cost * Math.pow(1.14, upg.owned));
+    }
+
+    function getNextUnlock() {
+        let next = null;
+        upgrades.forEach(upg => {
+            if (totalRuns < upg.unlockAt && (next === null || upg.unlockAt < next)) next = upg.unlockAt;
+        });
+        return next;
+    }
+
+    function getAffordableState() {
+        return upgrades
+            .filter(upg => totalRuns >= upg.unlockAt)
+            .map(upg => `${upg.id}:${runs >= getUpgradeCost(upg) ? 1 : 0}:${upg.owned}`)
+            .join("|");
+    }
+
+    function renderUpgrades() {
+        upgradesDiv.innerHTML = "";
+        upgrades.forEach(upg => {
+            if (totalRuns < upg.unlockAt) return;
+            const cost = getUpgradeCost(upg);
+            const div = document.createElement("div");
+            div.className = "upgrade";
+            div.innerHTML = `
+                <div>
+                    <strong>${upg.name}</strong> (Owned: ${upg.owned})<br>
+                    <small>${upg.desc}</small><br>
+                    Cost: ${format(cost)} Run Currency
+                </div>
+                <button onclick="buyUpgrade('${upg.id}')" ${runs < cost ? "disabled" : ""}>Buy</button>
+            `;
+            upgradesDiv.appendChild(div);
+        });
+        const next = getNextUnlock();
+        unlockInfo.textContent = next ? `Next upgrade tier unlocks at ${format(next)} Career Currency` : "All upgrades unlocked";
+        lastRenderedAffordableState = getAffordableState();
+    }
+
+    window.buyUpgrade = function(id) {
+        const upg = upgrades.find(u => u.id === id);
+        if (!upg || totalRuns < upg.unlockAt) return;
+        const cost = getUpgradeCost(upg);
+        if (runs >= cost) {
+            runs -= cost;
+            upg.owned++;
+            if (upg.power) clickPower += upg.power;
+            if (upg.auto) autoPower += upg.auto;
+            showMessage(`Bought ${upg.name}!`);
+            updateDisplay();
+            renderUpgrades();
+            saveGame(true);
+        }
+    };
+
+    function chooseAtBatOutcome() {
+        const roll = Math.random();
+        if (roll < 0.56) return "out";
+        if (roll < 0.77) return "single";
+        if (roll < 0.88) return "double";
+        if (roll < 0.91) return "triple";
+        return "homer";
+    }
+
+    function advanceRunners(hitBases) {
+        let scored = 0;
+        const next = [false, false, false];
+
+        for (let i = 2; i >= 0; i--) {
+            if (!bases[i]) continue;
+            const destination = i + hitBases;
+            if (destination >= 3) scored++;
+            else next[destination] = true;
+        }
+
+        if (hitBases >= 4) {
+            scored++;
+        } else {
+            next[hitBases - 1] = true;
+        }
+
+        bases = next;
+        homeScore += scored;
+        return scored;
+    }
+
+    function simulateOpponentHalfInning() {
+        // Lightweight opponent model: most innings are quiet, with occasional crooked numbers.
+        const roll = Math.random();
+        let scored = 0;
+        if (roll < 0.48) scored = 0;
+        else if (roll < 0.75) scored = 1;
+        else if (roll < 0.90) scored = 2;
+        else if (roll < 0.97) scored = 3;
+        else scored = 4;
+        awayScore += scored;
+        return scored;
+    }
+
+    function completeHalfInning() {
+        bases = [false, false, false];
+        outs = 0;
+
+        if (inning >= 9 && homeScore !== awayScore) {
+            finishGame();
+            return;
+        }
+
+        inning++;
+        const opponentRuns = simulateOpponentHalfInning();
+        lastPlay.textContent = opponentRuns === 0
+            ? `Visitors went scoreless. Bottom ${inning} begins.`
+            : `Visitors scored ${opponentRuns}. Bottom ${inning} begins.`;
+    }
+
+    function finishGame() {
+        gameOver = true;
+        gamesPlayed++;
+        const won = homeScore > awayScore;
+        if (won) {
+            wins++;
+            winStreak++;
+            bestStreak = Math.max(bestStreak, winStreak);
+            const bonus = 50 * getTotalMult();
+            runs += bonus;
+            totalRuns += bonus;
+            lastPlay.textContent = `FINAL: Home wins ${homeScore}-${awayScore}! +${format(bonus)} victory currency.`;
+        } else {
+            losses++;
+            winStreak = 0;
+            lastPlay.textContent = `FINAL: Visitors win ${awayScore}-${homeScore}.`;
+        }
+        hitBtn.textContent = "START NEXT GAME";
+        saveGame(true);
+    }
+
+    function startNextGame() {
+        gameNumber++;
+        inning = 1;
+        outs = 0;
+        bases = [false, false, false];
+        homeScore = 0;
+        awayScore = simulateOpponentHalfInning();
+        gameOver = false;
+        hitBtn.textContent = "TAKE AN AT-BAT!";
+        lastPlay.textContent = awayScore === 0
+            ? "Visitors went scoreless in the top of the 1st. Your turn."
+            : `Visitors scored ${awayScore} in the top of the 1st. Your turn.`;
+        updateDisplay();
+        saveGame(true);
+    }
+
+    hitBtn.addEventListener("click", () => {
+        if (gameOver) {
+            startNextGame();
+            return;
+        }
+
+        const reward = clickPower * getTotalMult();
+        runs += reward;
+        totalRuns += reward;
+
+        const outcome = chooseAtBatOutcome();
+        if (outcome === "out") {
+            outs++;
+            lastPlay.textContent = `Out. +${format(reward)} currency.`;
+            if (outs >= 3) completeHalfInning();
+        } else {
+            const basesTaken = outcome === "single" ? 1 : outcome === "double" ? 2 : outcome === "triple" ? 3 : 4;
+            const scored = advanceRunners(basesTaken);
+            if (outcome === "homer") homeRuns++;
+            const label = outcome === "homer" ? "HOME RUN" : outcome.toUpperCase();
+            const scoringText = scored > 0 ? ` ${scored} run${scored === 1 ? "" : "s"} scored!` : "";
+            lastPlay.textContent = `${label}!${scoringText} +${format(reward)} currency.`;
+
+            if (inning >= 9 && homeScore > awayScore) finishGame();
+        }
+
+        updateDisplay();
+        renderUpgrades();
+    });
+
+    setInterval(() => {
+        if (autoPower > 0) {
+            const gain = autoPower * getTotalMult() / 10;
+            runs += gain;
+            totalRuns += gain;
+            updateDisplay();
+            const currentState = getAffordableState();
+            if (currentState !== lastRenderedAffordableState) renderUpgrades();
+        }
+    }, 100);
+
+    prestigeBtn.addEventListener("click", () => {
+        if (runs >= PRESTIGE_COST) {
+            totalPrestiges++;
+            prestigeMult = 1 + (totalPrestiges * 0.1);
+            runs = 0;
+            clickPower = 1;
+            autoPower = 0;
+            upgrades.forEach(u => u.owned = 0);
+            showMessage(`New Season! Permanent bonus is now ${prestigeMult.toFixed(1)}x`);
+            updateDisplay();
+            renderUpgrades();
+            saveGame(true);
+        }
+    });
+
+    function renderOuts() {
+        outsDots.innerHTML = "";
+        for (let i = 0; i < 3; i++) {
+            const dot = document.createElement("span");
+            dot.className = `count-dot ${i < outs ? "on" : ""}`;
+            outsDots.appendChild(dot);
+        }
+    }
+
+    function updateDisplay() {
+        const currentRPS = autoPower * getTotalMult();
+        runsDisplay.textContent = format(runs) + " Run Currency";
+        rpsDisplay.textContent = format(currentRPS) + " Run Currency/sec";
+        seasonMultDisplay.textContent = prestigeMult.toFixed(1) + "x";
+        totalMultDisplay.textContent = getTotalMult().toFixed(2) + "x";
+        seasonsDisplay.textContent = totalPrestiges;
+        careerRunsDisplay.textContent = format(totalRuns);
+        clickPowerDisplay.textContent = format(clickPower * getTotalMult());
+        seasonLabel.textContent = `Season ${totalPrestiges + 1}`;
+        prestigeBtn.disabled = runs < PRESTIGE_COST;
+        prestigeBtn.textContent = runs < PRESTIGE_COST ? `Need ${format(PRESTIGE_COST - runs)} more` : "Start New Season";
+
+        homeScoreDisplay.textContent = homeScore;
+        awayScoreDisplay.textContent = awayScore;
+        inningLabel.textContent = gameOver ? "FINAL" : `BOT ${inning}`;
+        gameStatus.textContent = `Game ${gameNumber}`;
+        base1.classList.toggle("occupied", bases[0]);
+        base2.classList.toggle("occupied", bases[1]);
+        base3.classList.toggle("occupied", bases[2]);
+        renderOuts();
+
+        gamesPlayedDisplay.textContent = gamesPlayed;
+        winsDisplay.textContent = wins;
+        lossesDisplay.textContent = losses;
+        homersDisplay.textContent = homeRuns;
+        bestStreakDisplay.textContent = bestStreak;
+    }
+
+    function showMessage(text) {
+        message.textContent = text;
+        clearTimeout(showMessage.timeoutId);
+        showMessage.timeoutId = setTimeout(() => message.textContent = "", 2200);
+    }
+
+    function sanitizeNumber(value, fallback = 0) {
+        const n = Number(value);
+        return Number.isFinite(n) && n >= 0 ? n : fallback;
+    }
+
+    function sanitizeBoolArray(value) {
+        if (!Array.isArray(value) || value.length !== 3) return [false, false, false];
+        return value.map(Boolean);
+    }
+
+    function rebuildDerivedStats() {
+        clickPower = 1;
+        autoPower = 0;
+        upgrades.forEach(upg => {
+            if (upg.power) clickPower += upg.power * upg.owned;
+            if (upg.auto) autoPower += upg.auto * upg.owned;
+        });
+    }
+
+    function saveGame(silent = false) {
+        lastSaveTime = Date.now();
+        const saveData = {
+            version: VERSION,
+            runs,
+            totalRuns,
+            prestigeMult,
+            totalPrestiges,
+            lastSaveTime,
+            upgrades: upgrades.map(u => ({ id: u.id, owned: u.owned })),
+            baseball: {
+                inning, outs, bases, homeScore, awayScore, gameNumber, gamesPlayed,
+                wins, losses, homeRuns, winStreak, bestStreak, gameOver
+            }
+        };
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+            if (!silent) showMessage("Game Saved!");
+        } catch (err) {
+            console.error("Save failed:", err);
+            showMessage("Save failed — browser storage unavailable");
+        }
+    }
+
+    function loadGame() {
+        const saved = localStorage.getItem(SAVE_KEY);
+        if (!saved) {
+            awayScore = simulateOpponentHalfInning();
+            lastPlay.textContent = awayScore === 0
+                ? "Visitors went scoreless in the top of the 1st. Your turn."
+                : `Visitors scored ${awayScore} in the top of the 1st. Your turn.`;
+            showMessage("Fresh game ready!");
+            updateDisplay();
+            renderUpgrades();
+            return;
+        }
+
+        try {
+            const data = JSON.parse(saved);
+            runs = sanitizeNumber(data.runs, 0);
+            totalRuns = sanitizeNumber(data.totalRuns, 0);
+            totalPrestiges = Math.floor(sanitizeNumber(data.totalPrestiges, 0));
+            prestigeMult = 1 + (totalPrestiges * 0.1);
+            lastSaveTime = sanitizeNumber(data.lastSaveTime, Date.now());
+
+            upgrades.forEach(u => u.owned = 0);
+            if (Array.isArray(data.upgrades)) {
+                data.upgrades.forEach(s => {
+                    const upg = upgrades.find(u => u.id === s.id);
+                    if (upg) upg.owned = Math.max(0, Math.floor(sanitizeNumber(s.owned, 0)));
+                });
+            }
+            rebuildDerivedStats();
+
+            // v0.2.x / v0.3.x saves have no baseball object. They migrate cleanly into a fresh Game 1.
+            if (data.baseball && typeof data.baseball === "object") {
+                const b = data.baseball;
+                inning = Math.max(1, Math.floor(sanitizeNumber(b.inning, 1)));
+                outs = Math.min(2, Math.floor(sanitizeNumber(b.outs, 0)));
+                bases = sanitizeBoolArray(b.bases);
+                homeScore = Math.floor(sanitizeNumber(b.homeScore, 0));
+                awayScore = Math.floor(sanitizeNumber(b.awayScore, 0));
+                gameNumber = Math.max(1, Math.floor(sanitizeNumber(b.gameNumber, 1)));
+                gamesPlayed = Math.floor(sanitizeNumber(b.gamesPlayed, 0));
+                wins = Math.floor(sanitizeNumber(b.wins, 0));
+                losses = Math.floor(sanitizeNumber(b.losses, 0));
+                homeRuns = Math.floor(sanitizeNumber(b.homeRuns, 0));
+                winStreak = Math.floor(sanitizeNumber(b.winStreak, 0));
+                bestStreak = Math.floor(sanitizeNumber(b.bestStreak, 0));
+                gameOver = Boolean(b.gameOver);
+                hitBtn.textContent = gameOver ? "START NEXT GAME" : "TAKE AN AT-BAT!";
+                lastPlay.textContent = gameOver ? "Game complete. Start the next one when ready." : "Back in the box.";
+            } else {
+                inning = 1;
+                outs = 0;
+                bases = [false, false, false];
+                homeScore = 0;
+                awayScore = simulateOpponentHalfInning();
+                gameNumber = 1;
+                gameOver = false;
+                lastPlay.textContent = "Legacy save migrated. Game 1 is ready.";
+            }
+
+            const now = Date.now();
+            const secondsAway = Math.max(0, Math.min((now - lastSaveTime) / 1000, 8 * 3600));
+            const offlineGain = autoPower * getTotalMult() * secondsAway * 0.60;
+            if (offlineGain > 1) {
+                runs += offlineGain;
+                totalRuns += offlineGain;
+                showMessage(`Welcome back! +${format(offlineGain)} currency while away`);
+            } else {
+                showMessage("Game Loaded!");
+            }
+
+            updateDisplay();
+            renderUpgrades();
+            saveGame(true);
+        } catch (err) {
+            console.error("Load failed:", err);
+            showMessage("Save data is corrupted. Use Reset Save to recover.");
+            updateDisplay();
+            renderUpgrades();
+        }
+    }
+
+    window.resetGame = function() {
+        if (!confirm("Reset all Baseball Idler progress? This cannot be undone.")) return;
+        localStorage.removeItem(SAVE_KEY);
+        runs = 0;
+        totalRuns = 0;
+        clickPower = 1;
+        autoPower = 0;
+        prestigeMult = 1.0;
+        totalPrestiges = 0;
+        lastSaveTime = Date.now();
+        upgrades.forEach(u => u.owned = 0);
+        inning = 1;
+        outs = 0;
+        bases = [false, false, false];
+        homeScore = 0;
+        awayScore = simulateOpponentHalfInning();
+        gameNumber = 1;
+        gamesPlayed = 0;
+        wins = 0;
+        losses = 0;
+        homeRuns = 0;
+        winStreak = 0;
+        bestStreak = 0;
+        gameOver = false;
+        hitBtn.textContent = "TAKE AN AT-BAT!";
+        lastPlay.textContent = "Fresh game ready.";
+        updateDisplay();
+        renderUpgrades();
+        showMessage("Save reset. Fresh season ready!");
+    };
+
+    window.saveGame = saveGame;
+    window.loadGame = loadGame;
+
+    setInterval(() => saveGame(true), 20000);
+    window.addEventListener("beforeunload", () => saveGame(true));
+
+    loadGame();
+    renderUpgrades();
+    updateDisplay();
+
+    if ("serviceWorker" in navigator && location.protocol !== "file:") {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./sw.js").catch(() => {});
+        });
+    }
+</script>
+</body>
+</html>
